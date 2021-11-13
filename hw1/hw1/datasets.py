@@ -83,7 +83,13 @@ class RandomImageDataset(Dataset):
         #  the random state outside this method.
         #  Raise a ValueError if the index is out of range.
         # ====== YOUR CODE: ======
-        pass
+        if index not in range(self.num_samples):
+            raise ValueError("Index is out of range")
+
+        with torch_temporary_seed(seed=index):
+            image, label = random_labelled_image(shape=self.image_dim,
+                                                 num_classes=self.num_classes)
+        return image, label
         # ========================
 
     def __len__(self):
@@ -91,7 +97,7 @@ class RandomImageDataset(Dataset):
         :return: Number of samples in this dataset.
         """
         # ====== YOUR CODE: ======
-        pass
+        return self.num_samples
         # ========================
 
 
