@@ -25,7 +25,13 @@ class FirstLastSampler(Sampler):
         # If the length of the data source is N, you should return indices in a
         # first-last ordering, i.e. [0, N-1, 1, N-2, ...].
         # ====== YOUR CODE: ======
-        
+        data_len = len(self.data_source)
+        back_range = range(data_len-1, (data_len//2)-1, -1)
+        front_range = range(data_len//2)
+        iter_ = [i for i2 in zip(front_range, back_range) for i in i2]
+        if data_len % 2 != 0:
+            iter_.append(data_len//2)
+        return iter(iter_)
         # ========================
 
     def __len__(self):
@@ -58,7 +64,7 @@ def create_train_validation_loaders(
     #  Hint: you can specify a Sampler class for the `DataLoader` instance
     #  you create.
     # ====== YOUR CODE: ======
-    
+    pass
     # ========================
 
     return dl_train, dl_valid
