@@ -31,7 +31,7 @@ class KNNClassifier(object):
         #     y_train.
         #  2. Save the number of classes as n_classes.
         # ====== YOUR CODE: ======
-        
+        pass
         # ========================
 
         self.x_train = x_train
@@ -63,7 +63,7 @@ class KNNClassifier(object):
             #  - Set y_pred[i] to the most common class among them
             #  - Don't use an explicit loop.
             # ====== YOUR CODE: ======
-            
+            pass
             # ========================
 
         return y_pred
@@ -91,7 +91,11 @@ def l2_dist(x1: Tensor, x2: Tensor):
 
     dists = None
     # ====== YOUR CODE: ======
-    
+    a = torch.diag(torch.mm(x1, x1.T)).reshape(x1.shape[0], -1)
+    b = torch.diag(torch.mm(x2, x2.T)).reshape(-1, x2.shape[0])
+    c = torch.mm(x1, x2.T) * -2
+
+    dists = torch.sqrt(a + b + c)
     # ========================
 
     return dists
@@ -111,7 +115,7 @@ def accuracy(y: Tensor, y_pred: Tensor):
     # TODO: Calculate prediction accuracy. Don't use an explicit loop.
     accuracy = None
     # ====== YOUR CODE: ======
-    
+    pass
     # ========================
 
     return accuracy
@@ -142,7 +146,7 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  random split each iteration), or implement something else.
 
         # ====== YOUR CODE: ======
-        
+        pass
         # ========================
 
     best_k_idx = np.argmax([np.mean(acc) for acc in accuracies])
