@@ -37,16 +37,16 @@ def torch_temporary_seed(seed: int):
     #  Implement this context manager as described.
     #  See torch.random.get/set_rng_state(), torch.random.manual_seed().
     # ====== YOUR CODE: ======
-    
+    orig_rng_state = torch.random.get_rng_state()
     # ========================
     try:
         # ====== YOUR CODE: ======
-
+        torch.random.manual_seed(seed=seed)
         # ========================
         yield
     finally:
         # ====== YOUR CODE: ======
-        pass
+        torch.random.set_rng_state(orig_rng_state)
         # ========================
 
 
