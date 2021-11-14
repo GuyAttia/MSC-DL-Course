@@ -156,7 +156,22 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  random split each iteration), or implement something else.
 
         # ====== YOUR CODE: ======
-        pass
+        valid_ratio = 1/num_folds
+        k_accuracies = []
+        for k_round in range(num_folds):
+            dl_train, dl_valid = dataloaders.create_train_validation_loaders(dataset=ds_train,
+                                                                             validation_ratio=valid_ratio)
+            x_s = []
+            y_s = []
+            for _, (x, y) in enumerate(dl_valid):
+                x_s.append(x)
+                y_s.append(y)
+            x_valid = torch.concat(x_s)
+            y_valid = torch.concat(y_s)
+            model.train(dl_train)
+            y_pred = model.predict(x_valid)
+            k_accuracies.append(accuracy(y=y_valid, y_pred=y_pred))
+        accuracies.append(k_accuracies)
         # ========================
 
     best_k_idx = np.argmax([np.mean(acc) for acc in accuracies])

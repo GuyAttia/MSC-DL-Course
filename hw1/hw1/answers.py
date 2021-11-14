@@ -28,11 +28,21 @@ This approach disable our ability to validate our model on a new clean dataset.
 # Part 2 answers
 
 part2_q1 = r"""
-**Your answer:**
+**Your answer:
+Yes, increasing k leads to generalization improvement of unseen data.
+When k is larger, we are taking into account more neighbours in each prediction hence increase classes variance.
+It's improving the models generalization up to the point we covered all the data-points and all our prediction are from the same class.
+**
 """
 
 part2_q2 = r"""
-**Your answer:**
+**Your answer:
+1. If we evaluate our models and choose the best one using the training-set we can accidentally choose over-fitted model
+with perfect fit for the training data, but when new data from slightly different distribution arrive it's predictions 
+accuracy will drop immediately.
+2. It is statistically possible to get a test-set which is quite similar to the training data, so the model can't 
+actually evaluate it's generalization. When using CV we are decreasing this probability. 
+**
 """
 
 # ==============
