@@ -23,7 +23,7 @@ class LinearClassifier(object):
 
         self.weights = None
         # ====== YOUR CODE: ======
-        
+        self.weights = torch.normal(mean=0, std=weight_std, size=(self.n_features, self.n_classes))
         # ========================
 
     def predict(self, x: Tensor):
@@ -45,7 +45,8 @@ class LinearClassifier(object):
 
         y_pred, class_scores = None, None
         # ====== YOUR CODE: ======
-        
+        class_scores = torch.mm(x, self.weights)
+        y_pred = class_scores.argmax(dim=1)
         # ========================
 
         return y_pred, class_scores
@@ -66,7 +67,7 @@ class LinearClassifier(object):
 
         acc = None
         # ====== YOUR CODE: ======
-        
+        acc = sum(y == y_pred) / y.shape[0]
         # ========================
 
         return acc * 100
@@ -102,7 +103,7 @@ class LinearClassifier(object):
             #     using the weight_decay parameter.
 
             # ====== YOUR CODE: ======
-            
+            pass
             # ========================
             print(".", end="")
 
@@ -123,7 +124,7 @@ class LinearClassifier(object):
         #  The output shape should be (n_classes, C, H, W).
 
         # ====== YOUR CODE: ======
-        
+        pass
         # ========================
 
         return w_images
@@ -136,7 +137,7 @@ def hyperparams():
     #  Manually tune the hyperparameters to get the training accuracy test
     #  to pass.
     # ====== YOUR CODE: ======
-    
+    pass
     # ========================
 
     return hp
