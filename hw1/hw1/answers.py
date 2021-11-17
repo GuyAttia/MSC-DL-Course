@@ -51,15 +51,30 @@ actually evaluate it's generalization. When using CV we are decreasing this prob
 # Part 3 answers
 
 part3_q1 = r"""
-**Your answer:**
+**Your answer:
+$\Delta$ is related to how much we allow some errors to occur, but so as the weights regularization.
+If we will change $\Delta$, so does the weights will change accordingly and we will get the same loss.
+**
 """
 
 part3_q2 = r"""
-**Your answer:**
+**Your answer:
+1) The model learns the labels position and then fits the digit which resembles the sample the most.
+We can explain the classification error where the model classified a 2 digit as 7 because the model 7's label isn't
+clear enough and looks similar to 2.
+2) In KNN due to it's nature, the predicted value is based on close neighbors classes, and here in the linear
+classifier, it's based on the previous samples of the same class. 
+**
 """
 
 part3_q3 = r"""
-**Your answer:**
+**Your answer:
+1) The learning rate we choose looks between Good and High.
+Too high learning rate graph should look a small decrease at the beginning and than high jump.
+Too low learning rate graph should look like slowly convergence over epochs.
+2) Based on the accuracies graph it's looks like our model is slightly overfitted to the training set, because
+their is a quite big difference between our training and validation scores.
+**
 """
 
 # ==============
