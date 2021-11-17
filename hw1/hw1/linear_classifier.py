@@ -103,7 +103,40 @@ class LinearClassifier(object):
             #     using the weight_decay parameter.
 
             # ====== YOUR CODE: ======
-            pass
+            # Train set
+            train_batches_loss = []
+            train_batches_acc = []
+            for x_train_batch, y_train_batch in dl_train:
+                y_pred_batch, class_scores_batch = self.predict(x=x_train_batch)
+                train_batch_loss = loss_fn(x=x_train_batch,
+                                           y=y_train_batch,
+                                           x_scores=class_scores_batch,
+                                           y_predicted=y_pred_batch)
+                train_batches_loss.append(train_batch_loss)
+                train_batches_acc.append(self.evaluate_accuracy(y=y_train_batch, y_pred=y_pred_batch))
+                grad = loss_fn.grad() + (weight_decay * self.weights)
+                self.weights = self.weights - (learn_rate * grad)
+            train_epoch_loss = torch.mean(torch.tensor(train_batches_loss))
+            train_epoch_acc = torch.mean(torch.tensor(train_batches_acc))
+            train_res.loss.append(train_epoch_loss)
+            train_res.accuracy.append(train_epoch_acc)
+
+            # Valid set
+            valid_batches_loss = []
+            valid_batches_acc = []
+            for x_valid_batch, y_valid_batch in dl_valid:
+                y_pred_batch, class_scores_batch = self.predict(x=x_valid_batch)
+                valid_batch_loss = loss_fn(x=x_valid_batch,
+                                           y=y_valid_batch,
+                                           x_scores=class_scores_batch,
+                                           y_predicted=y_pred_batch)
+                valid_batch_loss += (weight_decay * torch.norm(self.weights, p=2) / 2)
+                valid_batches_loss.append(valid_batch_loss)
+                valid_batches_acc.append(self.evaluate_accuracy(y=y_valid_batch, y_pred=y_pred_batch))
+            valid_epoch_loss = torch.mean(torch.tensor(valid_batches_loss))
+            valid_epoch_acc = torch.mean(torch.tensor(valid_batches_acc))
+            valid_res.loss.append(valid_epoch_loss)
+            valid_res.accuracy.append(valid_epoch_acc)
             # ========================
             print(".", end="")
 
@@ -124,7 +157,12 @@ class LinearClassifier(object):
         #  The output shape should be (n_classes, C, H, W).
 
         # ====== YOUR CODE: ======
-        pass
+        if has_bias:
+            weights_ = self.weights[1:, :]
+        else:
+            weights_ = self.weights
+        n_classes = weights_.shape[1]
+        w_images = weights_.transpose(0, 1).view(n_classes, *img_shape)
         # ========================
 
         return w_images
@@ -137,7 +175,9 @@ def hyperparams():
     #  Manually tune the hyperparameters to get the training accuracy test
     #  to pass.
     # ====== YOUR CODE: ======
-    pass
+    hp['learn_rate'] = 0.01
+    hp['weight_std'] = 0.01
+    hp['weight_decay'] = 0.001
     # ========================
 
     return hp
