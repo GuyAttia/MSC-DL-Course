@@ -52,7 +52,10 @@ class SVMHingeLoss(ClassifierLoss):
 
         loss = None
         # ====== YOUR CODE: ======
-        
+        true_class_scores = x_scores.gather(dim=1, index=y.view(-1, 1))
+        m = (x_scores - true_class_scores + self.delta).clip(min=0)
+        l = m.sum(axis=1) - m.gather(dim=1, index=y.view(-1, 1))
+        loss = l.mean()
         # ========================
 
         # TODO: Save what you need for gradient calculation in self.grad_ctx
@@ -75,7 +78,7 @@ class SVMHingeLoss(ClassifierLoss):
 
         grad = None
         # ====== YOUR CODE: ======
-        
+        pass
         # ========================
 
         return grad
