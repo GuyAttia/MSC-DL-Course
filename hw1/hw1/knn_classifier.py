@@ -31,15 +31,14 @@ class KNNClassifier(object):
         #     y_train.
         #  2. Save the number of classes as n_classes.
         # ====== YOUR CODE: ======
-        x_s = []
-        y_s = []
-
-        for _, (x, y) in enumerate(dl_train):
-            x_s.append(x)
-            y_s.append(y)
-        x_train = torch.concat(x_s)
-        y_train = torch.concat(y_s)
-        n_classes = len(dl_train.dataset.source_dataset.classes)
+        x, y = [], []
+        for _x, _y in dl_train:
+            x.append(_x)
+            y.append(_y)
+        x_train = torch.cat(x)
+        y_train = torch.cat(y)
+        n_classes  = torch.unique(y_train)
+        
         # ========================
 
         self.x_train = x_train
@@ -71,11 +70,10 @@ class KNNClassifier(object):
             #  - Set y_pred[i] to the most common class among them
             #  - Don't use an explicit loop.
             # ====== YOUR CODE: ======
-            i_dists = dist_matrix[:, i]
-            top_k_indices = torch.topk(i_dists, k=self.k, largest=False).indices
-            y_pred[i] = self.y_train[top_k_indices].mode().values.item()
+            distances = dist_matrix[:, i]
+            min_k_dists = torch.topk(distances, self.k, largest=False).indices
+            y_pred[i] = self.y_train[min_k_dists].mode().values.item()
             # ========================
-
         return y_pred
 
 
@@ -101,11 +99,11 @@ def l2_dist(x1: Tensor, x2: Tensor):
 
     dists = None
     # ====== YOUR CODE: ======
-    a = torch.diag(torch.mm(x1, x1.T)).reshape(x1.shape[0], -1)
-    b = torch.diag(torch.mm(x2, x2.T)).reshape(-1, x2.shape[0])
-    c = torch.mm(x1, x2.T) * -2
+    x1_pow2 = torch.diag(torch.matmul(x1, x1.T)).reshape(x1.shape[0],-1)
+    x2_pow2 = torch.diag(torch.matmul(x2, x2.T)).reshape(-1, x2.shape[0])
+    x1_mul_x2 = torch.matmul(x1,x2.T)
+    dists =  torch.sqrt(x1_pow2 + x2_pow2 - 2 * x1_mul_x2)
 
-    dists = torch.sqrt(a + b + c)
     # ========================
 
     return dists
@@ -125,7 +123,7 @@ def accuracy(y: Tensor, y_pred: Tensor):
     # TODO: Calculate prediction accuracy. Don't use an explicit loop.
     accuracy = None
     # ====== YOUR CODE: ======
-    accuracy = sum(y == y_pred) / len(y)
+    accuracy = torch.sum(y == y_pred).item() / y.shape[0]
     # ========================
 
     return accuracy
@@ -156,22 +154,24 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  random split each iteration), or implement something else.
 
         # ====== YOUR CODE: ======
-        valid_ratio = 1/num_folds
-        k_accuracies = []
-        for k_round in range(num_folds):
-            dl_train, dl_valid = dataloaders.create_train_validation_loaders(dataset=ds_train,
-                                                                             validation_ratio=valid_ratio)
-            x_s = []
-            y_s = []
-            for _, (x, y) in enumerate(dl_valid):
-                x_s.append(x)
-                y_s.append(y)
-            x_valid = torch.concat(x_s)
-            y_valid = torch.concat(y_s)
+        k_acc = []
+        validation_ratio = 1 / num_folds
+        for fold in range(num_folds):
+            dl_train, dl_val = dataloaders.create_train_validation_loaders(ds_train, validation_ratio=validation_ratio)
+            
             model.train(dl_train)
-            y_pred = model.predict(x_valid)
-            k_accuracies.append(accuracy(y=y_valid, y_pred=y_pred))
-        accuracies.append(k_accuracies)
+            x = []
+            y = []
+            for _x, _y in dl_train:
+                x.append(_x)
+                y.append(_y)
+                
+            ds_val_x = torch.cat(x)
+            ds_val_y = torch.cat(y)
+            y_pred = model.predict(ds_val_x)
+            k_acc.append(accuracy(ds_val_y,y_pred))
+            
+        accuracies.append(k_acc)
         # ========================
 
     best_k_idx = np.argmax([np.mean(acc) for acc in accuracies])
