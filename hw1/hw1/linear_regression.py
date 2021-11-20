@@ -32,7 +32,7 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
 
         y_pred = None
         # ====== YOUR CODE: ======
-        
+        y_pred = self.weights_.T @ X.T 
         # ========================
 
         return y_pred
@@ -51,7 +51,9 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
 
         w_opt = None
         # ====== YOUR CODE: ======
-        
+        reg = X.shape[0] * self.reg_lambda * np.eye(X.shape[1])
+        reg[0,0] = 0
+        w_opt = np.linalg.inv(X.T @ X + reg) @ X.T @ y
         # ========================
 
         self.weights_ = w_opt
@@ -77,7 +79,12 @@ def fit_predict_dataframe(
     """
     # TODO: Implement according to the docstring description.
     # ====== YOUR CODE: ======
+    if feature_names is None: x = df[df.columns[:-1]]
+    else: x = df[feature_names] 
+    y = df[target_name]
     
+    # Test the model implementation is correct
+    y_pred = model.fit_predict(x, y)    
     # ========================
     return y_pred
 
@@ -100,7 +107,7 @@ class BiasTrickTransformer(BaseEstimator, TransformerMixin):
 
         xb = None
         # ====== YOUR CODE: ======
-        
+        xb = np.hstack((np.ones((X.shape[0],1)), X))
         # ========================
 
         return xb
@@ -117,7 +124,7 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
         # TODO: Your custom initialization, if needed
         # Add any hyperparameters you need and save them as above
         # ====== YOUR CODE: ======
-        
+        self.pol_feat = sklearn.preprocessing.PolynomialFeatures(degree, interaction_only=True, include_bias=False)
         # ========================
 
     def fit(self, X, y=None):
@@ -139,7 +146,8 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
 
         X_transformed = None
         # ====== YOUR CODE: ======
-        
+        X_transformed = np.delete(X, [2, 3, 8, 11], 1)
+        X_transformed = self.pol_feat.fit_transform(X)
         # ========================
 
         return X_transformed
@@ -163,7 +171,10 @@ def top_correlated_features(df: DataFrame, target_feature, n=5):
     # TODO: Calculate correlations with target and sort features by it
 
     # ====== YOUR CODE: ======
-    
+    df_wo_target = df.drop(columns=target_feature)
+    corr_data_abs = df_wo_target.corrwith(df[target_feature], axis=0).abs()
+    top_n_corr = corr_data_abs.nlargest(n=n)
+    top_n_features, top_n_corr = top_n_corr.keys(), top_n_corr.values
     # ========================
 
     return top_n_features, top_n_corr
@@ -179,7 +190,7 @@ def mse_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement MSE using numpy.
     # ====== YOUR CODE: ======
-    
+    mse = (np.square(y - y_pred)).mean()
     # ========================
     return mse
 
@@ -194,7 +205,7 @@ def r2_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement R^2 using numpy.
     # ====== YOUR CODE: ======
-    
+    r2 = 1 - np.sum(np.square(y - y_pred)) / np.sum(np.square(y -np.mean(y)))
     # ========================
     return r2
 
@@ -226,8 +237,16 @@ def cv_best_hyperparams(
     #    names as keys.
     #  - You can use MSE or R^2 as a score.
 
-    # ====== YOUR CODE: ======
-   
+    # ====== YOUR CODE: ======    
+    print(model.get_params())
+    
+    params = {'bostonfeaturestransformer__degree': degree_range, 'linearregressor__reg_lambda': lambda_range}
+    
+    splitter = sklearn.model_selection.KFold(n_splits=k_folds, shuffle=True)
+    cv_grid = sklearn.model_selection.GridSearchCV(model, params, scoring='neg_mean_squared_error', cv=splitter)
+    best_model = cv_grid.fit(X, y)
+    
+    best_params = best_model.best_params_    
     # ========================
 
     return best_params
