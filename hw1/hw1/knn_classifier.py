@@ -37,8 +37,8 @@ class KNNClassifier(object):
         for _, (x, y) in enumerate(dl_train):
             x_s.append(x)
             y_s.append(y)
-        x_train = torch.concat(x_s)
-        y_train = torch.concat(y_s)
+        x_train = torch.cat(x_s)
+        y_train = torch.cat(y_s)
         n_classes = len(dl_train.dataset.source_dataset.classes)
         # ========================
 
@@ -125,7 +125,7 @@ def accuracy(y: Tensor, y_pred: Tensor):
     # TODO: Calculate prediction accuracy. Don't use an explicit loop.
     accuracy = None
     # ====== YOUR CODE: ======
-    accuracy = sum(y == y_pred) / len(y)
+    accuracy = torch.true_divide(sum(y == y_pred), len(y))
     # ========================
 
     return accuracy
@@ -166,8 +166,8 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
             for _, (x, y) in enumerate(dl_valid):
                 x_s.append(x)
                 y_s.append(y)
-            x_valid = torch.concat(x_s)
-            y_valid = torch.concat(y_s)
+            x_valid = torch.cat(x_s)
+            y_valid = torch.cat(y_s)
             model.train(dl_train)
             y_pred = model.predict(x_valid)
             k_accuracies.append(accuracy(y=y_valid, y_pred=y_pred))

@@ -67,7 +67,7 @@ class LinearClassifier(object):
 
         acc = None
         # ====== YOUR CODE: ======
-        acc = sum(y == y_pred) / y.shape[0]
+        acc = torch.true_divide(sum(y == y_pred), y.shape[0])
         # ========================
 
         return acc * 100
