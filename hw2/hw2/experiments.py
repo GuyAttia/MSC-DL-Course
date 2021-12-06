@@ -26,7 +26,7 @@ def run_experiment(
     seed=None,
     device=None,
     # Training params
-    bs_train=64,
+    bs_train=128,
     bs_test=None,
     batches=100,
     epochs=100,
