@@ -129,11 +129,11 @@ class RMSProp(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-
+        self.grads = [0] * len(self.params)
         # ========================
 
     def step(self):
-        for p, dp in self.params:
+        for idx, (p, dp) in enumerate(self.params):
             if dp is None:
                 continue
 
@@ -142,5 +142,7 @@ class RMSProp(Optimizer):
             # average of it's previous gradients. Use it to update the
             # parameters tensor.
             # ====== YOUR CODE: ======
-
+            dp += p * self.reg
+            self.grads[idx] = self.decay * self.grads[idx] + dp**2 * (1-self.decay)  
+            p -= dp * self.learn_rate / (self.grads[idx] + self.eps)**0.5
             # ========================

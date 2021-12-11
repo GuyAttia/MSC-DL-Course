@@ -258,17 +258,20 @@ class TorchTrainer(Trainer):
         #  - Calculate number of correct predictions
         #tip: use loss = loss.item() in the end
         # ====== YOUR CODE: ======
-        ## FIX
         y_pred = self.model.forward(X)
         y_loss = self.loss_fn.forward(y_pred, y)
+        loss = y_loss.item()
+        
         self.optimizer.zero_grad()
+        
         torch.autograd.backward(y_loss)
-        _, pred_classes = torch.max(y_pred, dim=1)
-        correct = torch.sum(pred_classes == y)
+        
+        _, pred = torch.max(y_pred, dim=1) # get the predicted index
+        num_correct = torch.sum(pred == y).item()
+        
         self.optimizer.step()
 
-        loss = y_loss.item()
-        num_correct = correct.item()
+        
         
         # ========================
 
@@ -290,10 +293,11 @@ class TorchTrainer(Trainer):
             # Calculate accuracy
             y_pred = self.model.forward(X)
             y_loss = self.loss_fn.forward(y_pred, y)
-            _, pred_classes = torch.max(y_pred, dim=1)
-            correct = torch.sum(pred_classes == y)
-
             loss = y_loss.item()
-            num_correct = correct.item()            # ========================
+            
+            _, pred = torch.max(y_pred, dim=1)
+            num_correct = torch.sum(pred == y).item()
+
+            # ========================
 
         return BatchResult(loss, num_correct)

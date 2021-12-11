@@ -311,7 +311,7 @@ class CrossEntropyLoss(Layer):
             definition above. A scalar.
         """
 
-        N = x.shape[0]
+        _N = x.shape[0]
 
         # Shift input for numerical stability
         xmax, _ = torch.max(x, dim=1, keepdim=True)
@@ -321,7 +321,7 @@ class CrossEntropyLoss(Layer):
         #  notebook (i.e. directly using the class scores).
         # ====== YOUR CODE: ======
         x_y = torch.gather(x, 1, y.view(-1,1))
-        loss = torch.mean(-x_y + torch.log(torch.sum(torch.exp(x), axis=1)))
+        loss = torch.mean(torch.log(torch.sum(torch.exp(x), axis=1)) - x_y)
         # ========================
 
         self.grad_cache["x"] = x
@@ -369,7 +369,13 @@ class Dropout(Layer):
         #  Notice that contrary to previous layers, this layer behaves
         #  differently a according to the current training_mode (train/test).
         # ====== YOUR CODE: ======
-
+        if not self.training_mode:
+            out = x
+        else:
+            # create a binary (1's are present with propbability of 1-p) matrix of matching size to x that will use to drop the original values from x.
+            drop = torch.bernoulli(torch.full(x.shape, 1-self.p)).int() 
+            out = x * drop
+            self.grad_cache["mask"] = drop
         # ========================
 
         return out
@@ -377,7 +383,11 @@ class Dropout(Layer):
     def backward(self, dout):
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-
+        if not self.training_mode:
+            dx = dout
+        else:
+            ddrop = self.grad_cache["mask"]
+            dx = dout * ddrop            
         # ========================
 
         return dx
@@ -501,6 +511,8 @@ class MLP(Layer):
             else:
                 layers.append(Linear(hidden_features[idx-1], h))
             layers.append(activation_cls())
+            if dropout > 0:
+                layers.append(Dropout(p=dropout))
         layers.append(Linear(hidden_features[-1], num_classes))               
                 
         # ========================

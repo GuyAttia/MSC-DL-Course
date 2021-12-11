@@ -323,22 +323,14 @@ class ResNetClassifier(ConvClassifier):
         return seq
 
 
-class YourCodeNet(ConvClassifier):
-    def __init__(self, *args, **kwargs):
-        """
-        See ConvClassifier.__init__
-        """
-        super().__init__(*args, **kwargs)
+class YourCodeNet(ResNetClassifier):
+    def __init__(self, in_size, out_classes, channels, pool_every, hidden_dims):
+        super().__init__(in_size, out_classes, channels, pool_every, hidden_dims, dropout=0.4, batchnorm=True)
 
-        # TODO: Add any additional initialization as needed.
+        # TODO: Change whatever you want about the ConvClassifier to try to
+        #  improve it's results on CIFAR-10.
+        #  For example, add batchnorm, dropout, skip connections, change conv
+        #  filter sizes etc.
         # ====== YOUR CODE: ======
-        pass
+        pass 
         # ========================
-
-    # TODO: Change whatever you want about the ConvClassifier to try to
-    #  improve it's results on CIFAR-10.
-    #  For example, add batchnorm, dropout, skip connections, change conv
-    #  filter sizes etc.
-    # ====== YOUR CODE: ======
-
-    # ========================

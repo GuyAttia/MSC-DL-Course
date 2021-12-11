@@ -100,9 +100,7 @@ def run_experiment(
                      activation_type=activation_type,
                      activation_params=activation_params,
                      pooling_type=pooling_type,
-                     pooling_params=pooling_params,
-                     batchnorm=batchnorm,
-                     dropout=dropout)
+                     pooling_params=pooling_params)
     
     
     loss_fn = torch.nn.CrossEntropyLoss()
