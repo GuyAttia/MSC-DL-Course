@@ -7,7 +7,7 @@ from typing import Any, Callable
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from cs236781.train_results import FitResult, BatchResult, EpochResult
+from cs3600.train_results import FitResult, BatchResult, EpochResult
 
 
 class Trainer(abc.ABC):
@@ -245,7 +245,11 @@ class VAETrainer(Trainer):
         x = x.to(self.device)  # Image batch (N,C,H,W)
         # TODO: Train a VAE on one batch.
         # ====== YOUR CODE: ======
-
+        z, mu, log_sig2 = self.model(x)
+        self.optimizer.zero_grad()
+        loss, data_loss, _ = self.loss_fn(x, z, mu, log_sig2)
+        loss.backward()
+        self.optimizer.step() 
         # ========================
 
         return BatchResult(loss.item(), 1 / data_loss.item())
@@ -257,7 +261,8 @@ class VAETrainer(Trainer):
         with torch.no_grad():
             # TODO: Evaluate a VAE on one batch.
             # ====== YOUR CODE: ======
-
+            z, mu, log_sig2 = self.model(x)
+            loss, data_loss, _ = self.loss_fn(x, z, mu, log_sig2)
             # ========================
 
         return BatchResult(loss.item(), 1 / data_loss.item())
