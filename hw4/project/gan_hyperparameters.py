@@ -6,58 +6,51 @@ def gan_hyperparameters():
         data_label=1,
         label_noise=0.3,
         discriminator_optimizer=dict(
-            type="Adam",  # Any name in nn.optim like SGD, Adam
+            type="Adam",
             lr=0.0005,
         ),
         generator_optimizer=dict(
-            type="Adam",  # Any name in nn.optim like SGD, Adam
+            type="Adam",
             lr=0.0005,
         ),
         n_critic=1,
         c=0.0
     )
-    # ========================
     return hypers
 
-def sngan_hyperparams():
+def sngan_hyperparameters():
     hypers = gan_hyperparameters()
-    new_hypers = dict(
-
-    )
-    hypers.update(new_hypers)
     return hypers
 
-
-
-def wgan_hyperparams():
+def wgan_hyperparameters():
     hypers = gan_hyperparameters()
     new_hypers = dict(
         discriminator_optimizer=dict(
-            type="RMSprop",
-            lr=5e-4,
+            type="RMSprop", # Using RMSprop based on WGAN paper recommendation
+            lr=0.0005,
         ),
         generator_optimizer=dict(
-            type="RMSprop",
-            lr=5e-4,
+            type="RMSprop", # Using RMSprop based on WGAN paper recommendation
+            lr=0.0005,
         ),
-        n_critic=5,
+        n_critic=1,
         c=0.01
     )
     hypers.update(new_hypers)
     return hypers
 
-def w_sn_gan_hyperparams():
+def snwgan_hyperparameters():
     hypers = gan_hyperparameters()
     new_hypers = dict(
         discriminator_optimizer=dict(
-            type="RMSprop",
-            lr=2e-4,
+            type="RMSprop", # Using RMSprop based on WGAN paper recommendation
+            lr=0.0002,
         ),
         generator_optimizer=dict(
-            type="RMSprop",
-            lr=2e-4,
+            type="RMSprop", # Using RMSprop based on WGAN paper recommendation
+            lr=0.0002,
         ),
-        n_critic=5,
+        n_critic=1,
         c=0.01
     )
     hypers.update(new_hypers)

@@ -175,7 +175,7 @@ def copytree_ignore_fn(src, names, is_distribution=True):
         return names
 
     # Completely drop checkpoints folders
-    if os.path.basename(src) == "checkpoints":
+    if os.path.basename(src) == "checkpoints" or os.path.basename(src) == "project_checkpoints":
         return names
 
     # Go over names and select the ones to drop

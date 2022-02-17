@@ -1,10 +1,14 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from typing import Callable
 from torch.utils.data import DataLoader
 from torch.optim.optimizer import Optimizer
+from torch.nn.utils import spectral_norm
+
+from typing import Callable
 
 
 class Discriminator(nn.Module):
@@ -14,16 +18,105 @@ class Discriminator(nn.Module):
         """
         super().__init__()
         self.in_size = in_size
-        # TODO: Create the discriminator model layers.
-        #  To extract image features you can use the EncoderCNN from the VAE
-        #  section or implement something new.
-        #  You can then use either an affine layer or another conv layer to
-        #  flatten the features.
-        # ====== YOUR CODE: ======
+        
         from hw4.autoencoder import EncoderCNN
         conv_in_channels, _, _ = in_size
         self.cnn = EncoderCNN(conv_in_channels, 256)
         
+        with torch.no_grad():
+            num_of_features = 1
+            num_of_features_arr = self.cnn(torch.zeros(1,*in_size)).shape
+            for f in num_of_features_arr:
+                num_of_features *= f
+        
+        self.out_layer = nn.Linear(num_of_features, 1, bias=True)
+
+    def forward(self, x):
+        """
+        :param x: Input of shape (N,C,H,W) matching the given in_size.
+        :return: Discriminator class score (not probability) of
+        shape (N,).
+        """
+        cnn_out = self.cnn(x).view(x.shape[0],-1)
+        y = self.out_layer(cnn_out)        
+        return y
+    
+    
+class WganDiscriminator(nn.Module):
+    def __init__(self, in_size):
+        """
+        :param in_size: The size of on input image (without batch dimension).
+        """
+        super().__init__()
+        self.in_size = in_size
+        self.conv = self.make_discriminator(in_size[0])
+        self.eval()
+
+    @staticmethod
+    def make_discriminator(in_size):
+        modules = []
+        for channel_in, channel_out in [(in_size, 64), (64, 128), (128, 256), (256, 512)]:
+            modules.append(nn.Conv2d(in_channels=channel_in, 
+                                     out_channels=channel_out,
+                                     kernel_size=4, 
+                                     padding=1, 
+                                     stride=2, 
+                                     bias=False))
+            if channel_in != in_size:
+                modules.append(nn.BatchNorm2d(num_features=channel_out))
+            modules.append(nn.ReLU())
+            
+        # modules.append(nn.Linear(512, 1, bias=True))
+        modules.append(nn.Conv2d(in_channels=512, 
+                                 out_channels=1,
+                                 kernel_size=4, 
+                                 padding=0, 
+                                 stride=1, 
+                                 bias=False))
+        
+
+        return nn.Sequential(*modules)
+    
+    def forward(self, x):
+        """
+        :param x: Input of shape (N,C,H,W) matching the given in_size.
+        :return: Discriminator class score (not probability) of
+        shape (N,).
+        """
+        y = self.conv(x)
+        y = torch.squeeze(y, 3)
+        y = torch.squeeze(y, 2)
+        return y
+
+
+class SNDiscriminator(nn.Module):
+    def __init__(self, in_size, out_channels):
+        super().__init__()
+
+        modules = []
+        conv_in_channels = in_size[0]
+        channels = [64, 128, 256]
+        for l in range(3):
+            modules.append(spectral_norm(nn.Conv2d(in_channels=conv_in_channels, 
+                                     out_channels=channels[l],
+                                     kernel_size=5,
+                                     stride=2,
+                                     padding=2)))
+            modules.append(nn.MaxPool2d(kernel_size=3,
+                                       padding=1,
+                                       stride=1))
+            modules.append(nn.BatchNorm2d(num_features=channels[l], eps=1e-6, momentum=0.9))
+            modules.append(nn.ReLU())
+            modules.append(nn.Dropout2d(p=0.3))
+            conv_in_channels = channels[l]
+
+        modules.append(spectral_norm(nn.Conv2d(in_channels=channels[-1],
+                                 out_channels=out_channels,
+                                 kernel_size=5,
+                                 padding=2)))
+        # ========================
+        self.cnn = nn.Sequential(*modules)
+
         with torch.no_grad():
             num_of_features = 1
             num_of_features_arr = self.cnn(torch.zeros(1,*in_size)).shape
@@ -39,16 +132,21 @@ class Discriminator(nn.Module):
         :return: Discriminator class score (not probability) of
         shape (N,).
         """
-        # TODO: Implement discriminator forward pass.
-        #  No need to apply sigmoid to obtain probability - we'll combine it
-        #  with the loss due to improved numerical stability.
-        # ====== YOUR CODE: ======
         cnn_out = self.cnn(x).view(x.shape[0],-1)
         y = self.out_layer(cnn_out)        
-        # ========================
         return y
-
-
+   
+    def forward(self, x):
+        """
+        :param x: Input of shape (N,C,H,W) matching the given in_size.
+        :return: Discriminator class score (not probability) of
+        shape (N,).
+        """
+        y = self.conv(x)
+        y = torch.squeeze(y, 3)
+        y = torch.squeeze(y, 2)
+        return y
+    
 class Generator(nn.Module):
     def __init__(self, z_dim, featuremap_size=4, out_channels=3):
         """
@@ -60,19 +158,11 @@ class Generator(nn.Module):
         super().__init__()
         self.z_dim = z_dim
 
-        # TODO: Create the generator model layers.
-        #  To combine image features you can use the DecoderCNN from the VAE
-        #  section or implement something new.
-        #  You can assume a fixed image size.
-        # ====== YOUR CODE: ======
-        #hint (you dont have to use....)
         self.featuremap_size = featuremap_size
         self.out_channels = out_channels
 
         self.in_channels = 512
         self.in_layer = nn.Linear(z_dim, featuremap_size*featuremap_size*self.in_channels, bias=False)
-
-        # from hw3.autoencoder import DecoderCNN
 
         channels = [512, 256, 128, 64, out_channels]
         modules = []
@@ -105,17 +195,13 @@ class Generator(nn.Module):
         :return: A batch of samples, shape (N,C,H,W).
         """
         device = next(self.parameters()).device
-        # TODO: Sample from the model.
-        #  Generate n latent space samples and return their reconstructions.
-        #  Don't use a loop.
-        # ====== YOUR CODE: ======
+        
         latent_samples = torch.randn(size=(n, self.z_dim), device=device)
         if with_grad:
             samples = self.forward(latent_samples)
         else:
             with torch.no_grad():
                 samples = self.forward(latent_samples)
-        # ========================
         return samples
 
     def forward(self, z):
@@ -124,15 +210,71 @@ class Generator(nn.Module):
         :return: A batch of generated images of shape (N,C,H,W) which should be
         the shape which the Discriminator accepts.
         """
-        # TODO: Implement the Generator forward pass.
-        #  Don't forget to make sure the output instances have the same
-        #  dynamic range as the original (real) images.
-        # ====== YOUR CODE: ======
         in_layer_output = self.in_layer(z)
         in_layer_output = torch.reshape(in_layer_output, [z.shape[0], self.in_channels, self.featuremap_size, self.featuremap_size])    
         x = self.cnn(in_layer_output)
-        # ========================
         return x
+
+    
+class WganGenerator(nn.Module):
+    def __init__(self, z_dim, featuremap_size=4, out_channels=3):
+        """
+        :param z_dim: Dimension of latent space.
+        :featuremap_size: Spatial size of first feature map to create
+        (determines output size). For example set to 4 for a 4x4 feature map.
+        :out_channels: Number of channels in the generated image.
+        """
+        super().__init__()
+        self.z_dim = z_dim
+        h_size = 64
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(z_dim, h_size * 8, kernel_size=4, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(h_size * 8),
+            nn.ReLU(),
+            nn.ConvTranspose2d(h_size * 8, h_size * 4, kernel_size=4, padding=1, stride=2, bias=False),
+            nn.BatchNorm2d(h_size * 4),
+            nn.ReLU(),
+            nn.ConvTranspose2d(h_size * 4, h_size * 2, kernel_size=4, padding=1, stride=2, bias=False),
+            nn.BatchNorm2d(h_size * 2),
+            nn.ReLU(),
+            nn.ConvTranspose2d(h_size * 2, h_size, kernel_size=4, padding=1, stride=2, bias=False),
+            nn.BatchNorm2d(h_size),
+            nn.ReLU(),
+            nn.ConvTranspose2d(h_size, out_channels, featuremap_size, 2, 1, bias=False),
+            # nn.Tanh()
+        )
+
+    def sample(self, n, with_grad=False):
+        """
+        Samples from the Generator.
+        :param n: Number of instance-space samples to generate.
+        :param with_grad: Whether the returned samples should be part of the
+        generator's computation graph or standalone tensors (i.e. should be
+        be able to backprop into them and compute their gradients).
+        :return: A batch of samples, shape (N,C,H,W).
+        """
+        device = next(self.parameters()).device
+
+        samples = torch.randn(n, self.z_dim, device=device)
+        if with_grad:
+            samples = self.forward(samples)
+        else:
+            with torch.no_grad():
+                samples = self.forward(samples)
+        return samples
+
+    def forward(self, z):
+        """
+        :param z: A batch of latent space samples of shape (N, latent_dim).
+        :return: A batch of generated images of shape (N,C,H,W) which should be
+        the shape which the Discriminator accepts.
+        """
+        z = z.unsqueeze(2)
+        z = z.unsqueeze(3)
+        x = self.decoder(z)
+        return x
+
 
 
 def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
@@ -151,11 +293,6 @@ def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
     :return: The combined loss of both.
     """
     assert data_label == 1 or data_label == 0
-    # TODO:
-    #  Implement the discriminator loss. Apply noise to both the real data and the
-    #  generated labels.
-    #  See pytorch's BCEWithLogitsLoss for a numerically stable implementation.
-    # ====== YOUR CODE: ======
     data_noise = torch.rand(y_data.shape).to(y_data.device) * label_noise - label_noise / 2
     generated_noise = torch.rand(y_generated.shape, device=y_data.device) * label_noise - label_noise / 2
     
@@ -166,8 +303,13 @@ def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
     
     loss_data = criterion(y_data, data_labels)
     loss_generated = criterion(y_generated, generated_labels)
-    # ========================
     return loss_data + loss_generated
+
+
+def discriminator_loss_fn_wgan(y_data, y_generated):
+    loss_data = y_data.mean(0).view(1)
+    loss_generated = y_generated.mean(0).view(1)
+    return loss_data, loss_generated
 
 
 def generator_loss_fn(y_generated, data_label=0):
@@ -181,16 +323,14 @@ def generator_loss_fn(y_generated, data_label=0):
     :return: The generator loss.
     """
     assert data_label == 1 or data_label == 0
-    # TODO:
-    #  Implement the Generator loss.
-    #  Think about what you need to compare the input to, in order to
-    #  formulate the loss in terms of Binary Cross Entropy.
-    # ====== YOUR CODE: ======
+
     criterion = torch.nn.BCEWithLogitsLoss()
     loss = criterion(y_generated, torch.full(y_generated.shape, float(data_label),device=y_generated.device))
-    # ========================
     return loss
 
+def generator_loss_fn_wgan(y_generated):
+    loss = y_generated.mean(0).view(1)
+    return loss
 
 def train_batch(
     dsc_model: Discriminator,
@@ -200,37 +340,40 @@ def train_batch(
     dsc_optimizer: Optimizer,
     gen_optimizer: Optimizer,
     x_data: Tensor,
+    name,
+    hp,
 ):
     """
     Trains a GAN for over one batch, updating both the discriminator and
     generator.
     :return: The discriminator and generator losses.
     """
-
-    # TODO: Discriminator update
-    #  1. Show the discriminator real and generated data
-    #  2. Calculate discriminator loss
-    #  3. Update discriminator parameters
-    # ====== YOUR CODE: ======
     gen_data = gen_model.sample(x_data.shape[0], with_grad=False)
     gen_data_score = dsc_model(gen_data)
-
     y_score = dsc_model(x_data)
     
     dsc_optimizer.zero_grad()
     
-    dsc_loss = dsc_loss_fn(y_score, gen_data_score)
-    
-    dsc_loss.backward()
-    
-    dsc_optimizer.step()
-    # ========================
-
-    # TODO: Generator update
-    #  1. Show the discriminator generated data
-    #  2. Calculate generator loss
-    #  3. Update generator parameters
-    # ====== YOUR CODE: ======
+    if name == 'gan' or name == 'sngan':
+        dsc_loss = dsc_loss_fn(y_score, gen_data_score)
+        dsc_loss.backward()
+        dsc_optimizer.step()
+    if name == 'wgan' or name == 'snwgan':
+        dsc_batch_losses = []
+        for p in dsc_model.parameters():
+            p.requires_grad = True
+        for d_iter in range(hp['n_critic']):
+            dsc_model.zero_grad()
+            for p in dsc_model.parameters():
+                p.data.clamp_(-hp['c'], hp['c'])
+            dsc_loss_real, dsc_loss_gen = dsc_loss_fn(y_score, gen_data_score)
+            dsc_loss_real.backward()
+            dsc_loss_gen.backward(torch.Tensor([-1]).to(x_data.device))
+            dsc_iter_loss = dsc_loss_real - dsc_loss_gen
+            dsc_batch_losses.append(dsc_iter_loss.item())
+            dsc_optimizer.step()
+        dsc_loss = np.mean(dsc_batch_losses)
+        
     disc_data = dsc_model(gen_model.sample(x_data.shape[0], with_grad=True))
     
     gen_optimizer.zero_grad()
@@ -240,7 +383,6 @@ def train_batch(
     gen_loss.backward()
     
     gen_optimizer.step()
-    # ========================
 
     return dsc_loss.item(), gen_loss.item()
 
@@ -257,13 +399,11 @@ def save_checkpoint(gen_model, dsc_losses, gen_losses, checkpoint_file):
     saved = False
     checkpoint_file = f"{checkpoint_file}.pt"
 
-    # TODO:
-    #  Save a checkpoint of the generator model. You can use torch.save().
-    #  You should decide what logic to use for deciding when to save.
-    #  If you save, set saved to True.
-    # ====== YOUR CODE: ======
     torch.save(gen_model, checkpoint_file)
     saved = True
-    # ========================
 
     return saved
+
+
+
+

@@ -1,12 +1,14 @@
 import os
 import pathlib
+
 import torch
-import cs3600.download
 import torchvision.transforms as T
 from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
-torch.manual_seed(42)
 
+import cs3600.download
+
+torch.manual_seed(42)
 
 
 class MyDataSet():
@@ -27,9 +29,7 @@ class MyDataSet():
         ])
         
         self.ds_gwb = ImageFolder(os.path.dirname(dataset_dir), tf)
-        
-        # super().__init__(self.ds_gwb, batch_size, shuffle)
-   
+           
     @property
     def image_dim(self): 
         return self.ds_gwb[0][0].shape
